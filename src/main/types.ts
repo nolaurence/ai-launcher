@@ -1,0 +1,40 @@
+export type WindowName = "launcher" | "clipboard" | "ai";
+
+export interface LauncherApp {
+  id: string;
+  name: string;
+  path: string;
+  source: "start-menu" | "path";
+}
+
+export interface ClipboardEntry {
+  id: string;
+  type: "text" | "image" | "file" | "video";
+  text?: string;
+  filePath?: string;
+  previewPath?: string;
+  mime?: string;
+  createdAt: number;
+}
+
+export interface LauncherSettings {
+  clipboardMaxItems: number;
+  shortcuts: {
+    launcher: string;
+    clipboard: string;
+  };
+  piCoding: {
+    webUrl: string;
+    apiBaseUrl: string;
+    command: string;
+  };
+  skills: Array<{
+    id: string;
+    name: string;
+    enabled: boolean;
+  }>;
+}
+
+export interface AiSessionRequest {
+  prompt: string;
+}

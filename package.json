@@ -1,0 +1,39 @@
+{
+  "name": "mica-launcher",
+  "version": "0.1.0",
+  "description": "A Win11 Mica-style Electron launcher with app search, clipboard history, and fast AI entry.",
+  "private": true,
+  "type": "module",
+  "main": "dist/main/main.js",
+  "scripts": {
+    "dev": "concurrently -k \"npm:dev:renderer\" \"npm:dev:main\" \"npm:dev:electron\"",
+    "dev:renderer": "vite --host 127.0.0.1",
+    "dev:main": "tsc -p tsconfig.main.json --watch --preserveWatchOutput",
+    "dev:electron": "wait-on tcp:5173 dist/main/main.js && electron .",
+    "start": "wait-on tcp:5173 dist/main/main.js && electron .",
+    "build": "tsc -p tsconfig.main.json && vite build",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.main.json --noEmit",
+    "dist": "npm run build && electron-builder"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "concurrently": "^9.1.2",
+    "electron": "^35.2.1",
+    "electron-builder": "^26.0.12",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.3",
+    "wait-on": "^8.0.3"
+  },
+  "build": {
+    "appId": "dev.pi.mica-launcher",
+    "productName": "Mica Launcher",
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis"
+    }
+  }
+}

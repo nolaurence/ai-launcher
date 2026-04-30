@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "dist",
+    "rootDir": "src",
+    "strict": true,
+    "allowJs": false,
+    "skipLibCheck": true,
+    "types": ["node"],
+    "sourceMap": true
+  },
+  "include": ["src/main/**/*.ts", "src/preload/**/*.ts"]
+}
