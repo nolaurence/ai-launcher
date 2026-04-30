@@ -34,6 +34,19 @@ export class ClipboardHistory {
     return this.entries;
   }
 
+  imageDataUrl(entryId: string): string | null {
+    const entry = this.entries.find((item) => item.id === entryId);
+    if (!entry?.previewPath || !existsSync(entry.previewPath)) {
+      return null;
+    }
+
+    try {
+      return `data:image/png;base64,${readFileSync(entry.previewPath).toString("base64")}`;
+    } catch {
+      return null;
+    }
+  }
+
   write(entryId: string): boolean {
     const entry = this.entries.find((item) => item.id === entryId);
     if (!entry) {

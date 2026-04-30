@@ -16,6 +16,16 @@ let piCoding: PiCodingAdapter;
 let appIndex = buildAppIndex();
 
 const windows = new Map<WindowName, BrowserWindow>();
+const launcherPhysicalSize = { width: 1321, height: 831 };
+const fixedToolPhysicalSize = { width: 1321, height: 831 };
+
+function toDipSize(width: number, height: number, scaleFactor: number): { width: number; height: number } {
+  const scale = scaleFactor > 0 ? scaleFactor : 1;
+  return {
+    width: Math.round(width / scale),
+    height: Math.round(height / scale)
+  };
+}
 
 function rendererUrl(view: WindowName): string {
   const devUrl = process.env.VITE_DEV_SERVER_URL ?? "http://127.0.0.1:5173";
@@ -26,20 +36,30 @@ function rendererUrl(view: WindowName): string {
 }
 
 function createWindow(name: WindowName): BrowserWindow {
-  const size = name === "launcher" ? { width: 1040, height: 620 } : name === "clipboard" ? { width: 940, height: 680 } : { width: 1100, height: 760 };
+  const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+  const launcherSize = toDipSize(launcherPhysicalSize.width, launcherPhysicalSize.height, display.scaleFactor);
+  const fixedToolSize = toDipSize(fixedToolPhysicalSize.width, fixedToolPhysicalSize.height, display.scaleFactor);
+  const fixedSizeWindow = name === "launcher" || name === "clipboard";
+  const size = name === "launcher" ? launcherSize : name === "clipboard" ? fixedToolSize : { width: 1100, height: 760 };
   const window = new BrowserWindow({
     ...size,
     show: false,
     frame: false,
-    resizable: name !== "launcher",
-    transparent: false,
+    resizable: !fixedSizeWindow,
+    maximizable: !fixedSizeWindow,
+    fullscreenable: !fixedSizeWindow,
+    minWidth: fixedSizeWindow ? size.width : undefined,
+    maxWidth: fixedSizeWindow ? size.width : undefined,
+    minHeight: fixedSizeWindow ? size.height : undefined,
+    maxHeight: fixedSizeWindow ? size.height : undefined,
+    transparent: true,
     vibrancy: "under-window",
     visualEffectState: "active",
     backgroundMaterial: "mica",
     backgroundColor: "#00000000",
     titleBarStyle: "hidden",
     webPreferences: {
-      preload: join(__dirname, "../preload/preload.js"),
+      preload: join(__dirname, "../preload/preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
       webviewTag: false
@@ -60,9 +80,13 @@ function getWindow(name: WindowName): BrowserWindow {
   return windows.get(name) ?? createWindow(name);
 }
 
-function centerLauncher(window: BrowserWindow): void {
+function centerFixedWindow(window: BrowserWindow, physicalSize: { width: number; height: number }): void {
   const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
   const bounds = display.workArea;
+  const size = toDipSize(physicalSize.width, physicalSize.height, display.scaleFactor);
+  window.setMinimumSize(size.width, size.height);
+  window.setMaximumSize(size.width, size.height);
+  window.setSize(size.width, size.height);
   const [width, height] = window.getSize();
   window.setPosition(Math.round(bounds.x + (bounds.width - width) / 2), Math.round(bounds.y + bounds.height * 0.18));
 }
@@ -70,7 +94,10 @@ function centerLauncher(window: BrowserWindow): void {
 function showWindow(name: WindowName, payload?: unknown): void {
   const window = getWindow(name);
   if (name === "launcher") {
-    centerLauncher(window);
+    centerFixedWindow(window, launcherPhysicalSize);
+  }
+  if (name === "clipboard") {
+    centerFixedWindow(window, fixedToolPhysicalSize);
   }
   window.show();
   window.focus();
@@ -93,7 +120,12 @@ function registerIpc(): void {
     return settings;
   });
 
-  ipcMain.handle("apps:search", (_event, query: string) => searchApps(appIndex, query));
+  ipcMain.handle("apps:search", (_event, query: string) => {
+    if (appIndex.length === 0) {
+      appIndex = buildAppIndex();
+    }
+    return searchApps(appIndex, query);
+  });
   ipcMain.handle("apps:refresh", () => {
     appIndex = buildAppIndex();
     return appIndex.length;
@@ -109,6 +141,7 @@ function registerIpc(): void {
 
   ipcMain.handle("clipboard:list", () => clipboardHistory.list());
   ipcMain.handle("clipboard:use", (_event, id: string) => clipboardHistory.write(id));
+  ipcMain.handle("clipboard:imageDataUrl", (_event, id: string) => clipboardHistory.imageDataUrl(id));
   ipcMain.handle("clipboard:writeText", (_event, text: string) => {
     clipboard.writeText(text);
     return true;
@@ -126,12 +159,19 @@ function registerIpc(): void {
     showWindow("ai", response);
     return response;
   });
+  ipcMain.handle("ai:start", () => {
+    const output = piCoding.start();
+    return { output, logs: piCoding.allLogs() };
+  });
+  ipcMain.handle("ai:logs", () => piCoding.allLogs());
 }
 
 app.whenReady().then(() => {
   settings = readSettings();
   clipboardHistory = new ClipboardHistory(settings.clipboardMaxItems);
-  piCoding = new PiCodingAdapter(() => settings);
+  piCoding = new PiCodingAdapter(() => settings, (output) => {
+    windows.get("ai")?.webContents.send("ai:output", output);
+  });
   clipboardHistory.start();
   registerIpc();
   registerShortcuts();

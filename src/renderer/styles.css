@@ -3,6 +3,11 @@
   font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
   background: transparent;
   color: #f7f7f8;
+  --launcher-search-height: 115px;
+  --launcher-row-height: 80px;
+  --launcher-footer-height: 70px;
+  --clipboard-header-height: 120px;
+  --clipboard-footer-height: 80px;
 }
 
 * {
@@ -15,6 +20,7 @@ body,
   width: 100%;
   height: 100%;
   margin: 0;
+  background: transparent;
 }
 
 button,
@@ -25,15 +31,13 @@ input {
 .page-shell {
   min-height: 100%;
   padding: 18px;
-  background:
-    linear-gradient(135deg, rgba(36, 38, 45, 0.76), rgba(17, 18, 23, 0.72)),
-    rgba(16, 16, 18, 0.66);
+  background: transparent;
 }
 
 .launcher-shell {
   min-height: 100%;
   padding: 0;
-  background: rgba(17, 17, 18, 0.72);
+  background: transparent;
 }
 
 .launcher-panel,
@@ -43,9 +47,9 @@ input {
   height: 100%;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 8px;
-  background: rgba(28, 30, 36, 0.58);
+  background: rgba(24, 25, 29, 0.48);
   box-shadow: 0 22px 70px rgba(0, 0, 0, 0.42);
-  backdrop-filter: blur(28px) saturate(1.35);
+  backdrop-filter: blur(38px) saturate(1.5);
   overflow: hidden;
 }
 
@@ -57,8 +61,8 @@ input {
   border-color: rgba(255, 255, 255, 0.18);
   border-radius: 12px;
   background:
-    linear-gradient(135deg, rgba(36, 36, 38, 0.9), rgba(24, 24, 25, 0.88)),
-    rgba(18, 18, 19, 0.86);
+    linear-gradient(135deg, rgba(44, 45, 50, 0.58), rgba(18, 19, 23, 0.46)),
+    rgba(20, 21, 24, 0.46);
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.5);
 }
 
@@ -67,8 +71,8 @@ input {
   grid-template-columns: 38px minmax(0, 1fr) auto;
   align-items: center;
   gap: 14px;
-  min-height: 84px;
-  padding: 0 26px;
+  min-height: var(--launcher-search-height);
+  padding: 0 28px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -80,7 +84,7 @@ input {
   border-radius: 8px;
   color: rgba(255, 255, 255, 0.78);
   background: rgba(255, 255, 255, 0.1);
-  font-size: 18px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -93,7 +97,7 @@ input {
   outline: none;
   background: transparent;
   color: #ffffff;
-  font-size: 27px;
+  font-size: 18px;
   letter-spacing: 0;
 }
 
@@ -106,22 +110,22 @@ input {
   align-items: center;
   gap: 8px;
   color: rgba(255, 255, 255, 0.55);
-  font-size: 16px;
+  font-size: 11px;
   font-weight: 650;
 }
 
 kbd {
   display: inline-grid;
   place-items: center;
-  min-width: 30px;
-  height: 26px;
-  padding: 0 7px;
+  min-width: 22px;
+  height: 19px;
+  padding: 0 5px;
   border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 7px;
   color: rgba(255, 255, 255, 0.68);
   background: rgba(255, 255, 255, 0.06);
   font: inherit;
-  font-size: 14px;
+  font-size: 10px;
   font-weight: 650;
 }
 
@@ -129,7 +133,7 @@ kbd {
   height: 40px;
   padding: 16px 26px 0;
   color: rgba(255, 255, 255, 0.62);
-  font-size: 15px;
+  font-size: 10px;
   font-weight: 700;
 }
 
@@ -139,7 +143,7 @@ kbd {
   flex: 1;
   gap: 4px;
   min-height: 0;
-  padding: 10px 10px 12px;
+  padding: 14px 14px 16px;
   overflow: auto;
 }
 
@@ -158,10 +162,10 @@ kbd {
   align-items: center;
   gap: 16px;
   width: 100%;
-  height: 56px;
+  height: var(--launcher-row-height);
   border: 0;
   border-radius: 8px;
-  padding: 0 16px;
+  padding: 0 14px;
   color: #f8f9fb;
   background: transparent;
   text-align: left;
@@ -169,7 +173,7 @@ kbd {
 
 .result-row.active,
 .result-row:hover {
-  background: rgba(255, 255, 255, 0.13);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .result-icon {
@@ -197,7 +201,7 @@ kbd {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 17px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -206,7 +210,7 @@ kbd {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: rgba(255, 255, 255, 0.58);
-  font-size: 16px;
+  font-size: 11px;
   font-weight: 650;
 }
 
@@ -220,7 +224,7 @@ kbd {
 
 .launcher-panel .result-meta {
   color: rgba(255, 255, 255, 0.58);
-  font-size: 16px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -229,7 +233,7 @@ kbd {
   align-items: center;
   justify-content: flex-end;
   gap: 12px;
-  min-height: 54px;
+  min-height: var(--launcher-footer-height);
   padding: 0 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.68);
@@ -238,19 +242,19 @@ kbd {
 .footer-icon {
   margin-right: auto;
   color: rgba(255, 255, 255, 0.56);
-  font-size: 22px;
+  font-size: 15px;
   transform: translateY(-2px);
 }
 
 .footer-action {
   color: rgba(255, 255, 255, 0.92);
-  font-size: 16px;
+  font-size: 11px;
   font-weight: 600;
 }
 
 .footer-muted {
   color: rgba(255, 255, 255, 0.58);
-  font-size: 16px;
+  font-size: 11px;
   font-weight: 650;
 }
 
@@ -334,6 +338,210 @@ kbd {
   background: rgba(0, 0, 0, 0.2);
 }
 
+.clipboard-shell {
+  min-height: 100%;
+  padding: 0;
+  background: transparent;
+}
+
+.clipboard-window {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, rgba(44, 45, 50, 0.58), rgba(18, 19, 23, 0.46)),
+    rgba(20, 21, 24, 0.46);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(38px) saturate(1.5);
+}
+
+.clipboard-header {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 230px;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--clipboard-header-height);
+  padding: 0 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.clipboard-back {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  color: #f5f5f5;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.clipboard-filter {
+  width: 100%;
+  height: 40px;
+  border: 0;
+  outline: none;
+  color: #fff;
+  background: transparent;
+  font-size: 14px;
+  letter-spacing: 0;
+}
+
+.clipboard-type {
+  width: 100%;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 8px;
+  padding: 0 12px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.clipboard-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  flex: 1;
+  min-height: 0;
+}
+
+.clipboard-list-pane {
+  min-width: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.clipboard-section-title {
+  height: 40px;
+  padding: 14px 24px 0;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.clipboard-list {
+  height: calc(100% - 40px);
+  padding: 0 10px 10px;
+  overflow: auto;
+}
+
+.clipboard-entry {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 38px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 10px;
+  color: #fff;
+  background: transparent;
+  text-align: left;
+}
+
+.clipboard-entry.active,
+.clipboard-entry:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.clipboard-thumb {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  overflow: hidden;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.12);
+  font-weight: 800;
+}
+
+.clipboard-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.clipboard-entry-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.clipboard-preview-pane {
+  display: grid;
+  grid-template-rows: minmax(240px, 1fr) auto;
+  min-width: 0;
+  min-height: 0;
+  padding: 72px 24px 20px;
+  overflow: hidden;
+}
+
+.clipboard-preview-large {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  overflow: auto;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.88);
+  background: rgba(0, 0, 0, 0.12);
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.clipboard-preview-large img,
+.clipboard-preview-large video {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+.clipboard-info {
+  padding-top: 22px;
+}
+
+.clipboard-info h2 {
+  margin: 0 0 14px;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 10px;
+}
+
+.clipboard-info-row {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  align-items: center;
+  min-height: 30px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.clipboard-info-row strong {
+  overflow: hidden;
+  color: #fff;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clipboard-footer {
+  min-height: var(--clipboard-footer-height);
+}
+
 .ai-header {
   min-height: 76px;
 }
@@ -349,10 +557,86 @@ kbd {
 }
 
 .ai-frame {
-  flex: 1;
   width: 100%;
+  min-height: 0;
   border: 0;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.ai-frame.hidden {
+  display: none;
+}
+
+.ai-main {
+  display: grid;
+  grid-template-rows: minmax(220px, 42%) minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+}
+
+.pi-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  padding: 18px;
+  overflow: auto;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.pi-empty {
+  margin: auto;
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 14px;
+}
+
+.pi-message {
+  max-width: 78%;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.07);
+  white-space: pre-wrap;
+}
+
+.pi-message.user {
+  align-self: flex-end;
+  background: rgba(121, 192, 255, 0.16);
+}
+
+.pi-message.assistant {
+  align-self: flex-start;
+}
+
+.pi-message.stderr,
+.pi-message.exit {
+  border-color: rgba(255, 120, 120, 0.28);
+  background: rgba(255, 90, 90, 0.1);
+}
+
+.pi-message-label {
+  display: block;
+  margin-bottom: 6px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.pi-message-content {
+  font-size: 13px;
+  line-height: 1.48;
+}
+
+.ai-console {
+  margin: 0;
+  padding: 14px;
+  overflow: auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.86);
+  background: rgba(0, 0, 0, 0.18);
+  font: 12px/1.45 Consolas, "Cascadia Mono", monospace;
+  white-space: pre-wrap;
 }
 
 .small-input {
@@ -379,7 +663,7 @@ kbd {
   gap: 10px;
   padding: 14px;
   border-right: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.035);
   overflow: auto;
 }
 

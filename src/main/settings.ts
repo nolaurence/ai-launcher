@@ -12,7 +12,7 @@ const defaultSettings: LauncherSettings = {
   piCoding: {
     webUrl: "http://127.0.0.1:31415",
     apiBaseUrl: "http://127.0.0.1:31415/api",
-    command: ""
+    command: "pi"
   },
   skills: [
     { id: "coding", name: "Coding Agent", enabled: true },

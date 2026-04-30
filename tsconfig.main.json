@@ -11,5 +11,5 @@
     "types": ["node"],
     "sourceMap": true
   },
-  "include": ["src/main/**/*.ts", "src/preload/**/*.ts"]
+  "include": ["src/main/**/*.ts", "src/preload/**/*.cts"]
 }
