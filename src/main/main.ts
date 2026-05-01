@@ -1,11 +1,11 @@
-import { app, BrowserWindow, clipboard, globalShortcut, ipcMain, screen, shell } from "electron";
+import { app, BrowserWindow, clipboard, globalShortcut, ipcMain, nativeTheme, screen, shell } from "electron";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildAppIndex, searchApps } from "./appIndex.js";
 import { ClipboardHistory } from "./clipboardHistory.js";
 import { PiCodingAdapter } from "./piCoding.js";
 import { readSettings, writeSettings } from "./settings.js";
-import type { LauncherSettings, WindowName } from "./types.js";
+import type { LauncherSettings, ThemeMode, WindowName } from "./types.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const isDev = process.env.VITE_DEV_SERVER_URL !== undefined || !app.isPackaged;
@@ -18,6 +18,10 @@ let appIndex = buildAppIndex();
 const windows = new Map<WindowName, BrowserWindow>();
 const launcherPhysicalSize = { width: 1321, height: 831 };
 const fixedToolPhysicalSize = { width: 1321, height: 831 };
+
+function currentTheme(): ThemeMode {
+  return nativeTheme.shouldUseDarkColors ? "dark" : "light";
+}
 
 function toDipSize(width: number, height: number, scaleFactor: number): { width: number; height: number } {
   const scale = scaleFactor > 0 ? scaleFactor : 1;
@@ -102,6 +106,7 @@ function showWindow(name: WindowName, payload?: unknown): void {
   window.show();
   window.focus();
   window.webContents.send("window:shown", payload ?? null);
+  window.webContents.send("theme:changed", currentTheme());
 }
 
 function registerShortcuts(): void {
@@ -154,11 +159,33 @@ function registerIpc(): void {
     BrowserWindow.fromWebContents(event.sender)?.hide();
     return true;
   });
+  ipcMain.handle("window:control", (event, action: "minimize" | "maximize" | "close") => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    if (!window) {
+      return false;
+    }
+    if (action === "minimize") {
+      window.minimize();
+      return true;
+    }
+    if (action === "maximize") {
+      if (window.isMaximized()) {
+        window.unmaximize();
+      } else {
+        window.maximize();
+      }
+      return true;
+    }
+    window.close();
+    return true;
+  });
+  ipcMain.handle("theme:get", () => currentTheme());
   ipcMain.handle("ai:ask", async (_event, prompt: string) => {
     const response = await piCoding.ask({ prompt });
     showWindow("ai", response);
     return response;
   });
+  ipcMain.handle("ai:send", (_event, prompt: string) => piCoding.ask({ prompt }));
   ipcMain.handle("ai:start", () => {
     const output = piCoding.start();
     return { output, logs: piCoding.allLogs() };
@@ -178,6 +205,12 @@ app.whenReady().then(() => {
   createWindow("launcher");
   createWindow("clipboard");
   createWindow("ai");
+  nativeTheme.on("updated", () => {
+    const theme = currentTheme();
+    for (const window of windows.values()) {
+      window.webContents.send("theme:changed", theme);
+    }
+  });
 });
 
 app.on("will-quit", () => {

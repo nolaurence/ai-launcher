@@ -1,4 +1,5 @@
 import "./styles.css";
+import { mountAiWindow } from "./ai/AiWindow";
 import type { ClipboardEntry, LauncherApp, LauncherSettings } from "../main/types.js";
 
 type LauncherResult =
@@ -7,13 +8,24 @@ type LauncherResult =
   | { kind: "calc"; value: string; label: string }
   | { kind: "command"; value: "clipboard" | "settings"; label: string };
 
-const app = document.querySelector<HTMLMainElement>("#app");
-if (!app) {
+const appRoot = document.querySelector<HTMLElement>("#app");
+if (!appRoot) {
   throw new Error("Missing #app root");
 }
+const app: HTMLElement = appRoot;
 
 const params = new URLSearchParams(window.location.search);
 const view = params.get("view") ?? "launcher";
+
+function applyTheme(theme: "dark" | "light"): void {
+  document.documentElement.dataset.theme = theme;
+  document.documentElement.style.colorScheme = theme;
+}
+
+if (window.launcherApi) {
+  void window.launcherApi.getTheme().then(applyTheme);
+  window.launcherApi.onThemeChanged(applyTheme);
+}
 
 function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -313,7 +325,7 @@ async function renderAi(): Promise<void> {
   const root = el("section", { className: "ai-window" });
   const header = el("header", { className: "window-header ai-header" });
   const titleBlock = el("div");
-  titleBlock.append(el("h1", { text: "快速 AI" }), el("p", { text: "复用 pi-coding 能力，支持技能管理与 web-ui 对话页" }));
+  titleBlock.append(el("h1", { text: "快速 AI" }), el("p", { text: "复用 pi-coding 能力，支持技能管理与本地对话页" }));
   const promptBadge = el("span", { className: "prompt-badge", text: "等待 Launcher 输入" });
   header.append(titleBlock, promptBadge);
 
@@ -323,8 +335,6 @@ async function renderAi(): Promise<void> {
   const chat = el("div", { className: "pi-chat" });
   const emptyChat = el("div", { className: "pi-empty", text: "Ask something from Launcher to start a pi session." });
   chat.append(emptyChat);
-  const frame = el("iframe", { className: "ai-frame hidden", title: "pi-coding web ui" });
-  frame.src = settings.piCoding.webUrl;
   const consolePanel = el("pre", { className: "ai-console" });
   let activeAssistantBubble: HTMLElement | null = null;
   const shouldShowInChat = (output: { type: string; text: string; eventType?: string; role?: string }): boolean => {
@@ -388,10 +398,6 @@ async function renderAi(): Promise<void> {
     consolePanel.scrollTop = consolePanel.scrollHeight;
   };
 
-  const webUrl = el("input", { className: "settings-input", title: "pi-coding web-ui 地址" });
-  webUrl.value = settings.piCoding.webUrl;
-  const apiBaseUrl = el("input", { className: "settings-input", title: "pi-coding API 地址" });
-  apiBaseUrl.value = settings.piCoding.apiBaseUrl;
   const command = el("input", { className: "settings-input", title: "pi-coding 命令" });
   command.value = settings.piCoding.command;
   const save = el("button", { className: "primary-button", text: "保存配置" });
@@ -400,12 +406,9 @@ async function renderAi(): Promise<void> {
     settings = await window.launcherApi.updateSettings({
       ...settings,
       piCoding: {
-        webUrl: webUrl.value.trim() || settings.piCoding.webUrl,
-        apiBaseUrl: apiBaseUrl.value.trim(),
         command: command.value.trim() || "pi"
       }
     });
-    frame.src = settings.piCoding.webUrl;
     const started = await window.launcherApi.startAi();
     activeAssistantBubble = null;
     empty(chat);
@@ -416,7 +419,7 @@ async function renderAi(): Promise<void> {
     }
   });
 
-  side.append(el("h2", { text: "pi-coding" }), webUrl, apiBaseUrl, command, save, el("h2", { text: "技能管理" }));
+  side.append(el("h2", { text: "pi-coding" }), command, save, el("h2", { text: "技能管理" }));
   for (const skill of settings.skills) {
     const label = el("label", { className: "skill-toggle" });
     const checkbox = el("input");
@@ -432,7 +435,7 @@ async function renderAi(): Promise<void> {
     side.append(label);
   }
 
-  main.append(chat, consolePanel, frame);
+  main.append(chat, consolePanel);
   body.append(side, main);
   root.append(header, body);
   app.replaceChildren(root);
@@ -448,10 +451,7 @@ async function renderAi(): Promise<void> {
   }
 
   window.launcherApi.onWindowShown((payload) => {
-    const data = payload as { url?: string; prompt?: string } | null;
-    if (data?.url) {
-      frame.src = data.url;
-    }
+    const data = payload as { prompt?: string } | null;
     promptBadge.textContent = data?.prompt ? data.prompt : "pi-coding";
   });
 }
@@ -666,7 +666,7 @@ async function renderClipboardPanel(): Promise<void> {
 if (view === "clipboard") {
   void renderClipboardPanel();
 } else if (view === "ai") {
-  void renderAi();
+  void mountAiWindow(app);
 } else {
   void renderLauncher();
 }

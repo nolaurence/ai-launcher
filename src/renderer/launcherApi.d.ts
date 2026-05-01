@@ -1,4 +1,4 @@
-import type { ClipboardEntry, LauncherApp, LauncherSettings, WindowName } from "../main/types.js";
+import type { ClipboardEntry, LauncherApp, LauncherSettings, ThemeMode, WindowName } from "../main/types.js";
 
 interface LauncherApi {
   getSettings: () => Promise<LauncherSettings>;
@@ -12,11 +12,15 @@ interface LauncherApi {
   writeClipboardText: (text: string) => Promise<boolean>;
   showWindow: (name: WindowName, payload?: unknown) => Promise<boolean>;
   hideWindow: () => Promise<boolean>;
-  askAi: (prompt: string) => Promise<{ url: string; prompt: string }>;
+  controlWindow: (action: "minimize" | "maximize" | "close") => Promise<boolean>;
+  getTheme: () => Promise<ThemeMode>;
+  askAi: (prompt: string) => Promise<{ prompt: string }>;
+  sendAiPrompt: (prompt: string) => Promise<{ prompt: string }>;
   startAi: () => Promise<{ output: AiOutput; logs: AiOutput[] }>;
   getAiLogs: () => Promise<AiOutput[]>;
   onAiOutput: (handler: (output: AiOutput) => void) => () => void;
   onWindowShown: (handler: (payload: unknown) => void) => () => void;
+  onThemeChanged: (handler: (theme: ThemeMode) => void) => () => void;
 }
 
 interface AiOutput {

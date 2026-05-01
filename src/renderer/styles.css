@@ -3,11 +3,38 @@
   font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
   background: transparent;
   color: #f7f7f8;
+  --app-text: #f7f7f8;
+  --app-muted: rgba(255, 255, 255, 0.64);
+  --app-subtle: rgba(255, 255, 255, 0.1);
+  --app-border: rgba(255, 255, 255, 0.14);
+  --app-panel: rgba(24, 25, 29, 0.48);
+  --app-panel-strong: rgba(20, 21, 24, 0.46);
+  --app-hover: rgba(255, 255, 255, 0.12);
+  --app-input: rgba(255, 255, 255, 0.08);
+  --app-control: rgba(255, 255, 255, 0.12);
+  --app-accent: #79c0ff;
+  --app-shadow: rgba(0, 0, 0, 0.42);
   --launcher-search-height: 115px;
   --launcher-row-height: 80px;
   --launcher-footer-height: 70px;
   --clipboard-header-height: 120px;
   --clipboard-footer-height: 80px;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  color: #17191c;
+  --app-text: #17191c;
+  --app-muted: rgba(20, 24, 31, 0.64);
+  --app-subtle: rgba(15, 23, 42, 0.1);
+  --app-border: rgba(15, 23, 42, 0.16);
+  --app-panel: rgba(250, 252, 255, 0.7);
+  --app-panel-strong: rgba(246, 248, 252, 0.76);
+  --app-hover: rgba(15, 23, 42, 0.08);
+  --app-input: rgba(15, 23, 42, 0.06);
+  --app-control: rgba(15, 23, 42, 0.09);
+  --app-accent: #1677ff;
+  --app-shadow: rgba(15, 23, 42, 0.18);
 }
 
 * {
@@ -51,6 +78,81 @@ input {
   box-shadow: 0 22px 70px rgba(0, 0, 0, 0.42);
   backdrop-filter: blur(38px) saturate(1.5);
   overflow: hidden;
+}
+
+:root[data-theme="light"] .launcher-panel,
+:root[data-theme="light"] .tool-window,
+:root[data-theme="light"] .ai-window,
+:root[data-theme="light"] .clipboard-window {
+  border-color: var(--app-border);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.76), rgba(236, 241, 249, 0.68)),
+    var(--app-panel);
+  box-shadow: 0 26px 76px var(--app-shadow);
+}
+
+:root[data-theme="light"] .launcher-searchbar,
+:root[data-theme="light"] .launcher-footer,
+:root[data-theme="light"] .window-header,
+:root[data-theme="light"] .clipboard-header,
+:root[data-theme="light"] .clipboard-list-pane,
+:root[data-theme="light"] .ai-side,
+:root[data-theme="light"] .ai-console {
+  border-color: var(--app-subtle);
+}
+
+:root[data-theme="light"] .launcher-input,
+:root[data-theme="light"] .clipboard-filter,
+:root[data-theme="light"] .settings-input,
+:root[data-theme="light"] .small-input,
+:root[data-theme="light"] .clipboard-type,
+:root[data-theme="light"] .result-row,
+:root[data-theme="light"] .clip-card,
+:root[data-theme="light"] .clipboard-entry,
+:root[data-theme="light"] .skill-toggle,
+:root[data-theme="light"] .window-header h1,
+:root[data-theme="light"] .clipboard-info-row strong,
+:root[data-theme="light"] .clipboard-preview-large,
+:root[data-theme="light"] .clip-preview {
+  color: var(--app-text);
+}
+
+:root[data-theme="light"] .quick-ai-hint,
+:root[data-theme="light"] .results-title,
+:root[data-theme="light"] .result-subtext,
+:root[data-theme="light"] .result-meta,
+:root[data-theme="light"] .clip-meta,
+:root[data-theme="light"] .window-header p,
+:root[data-theme="light"] .prompt-badge,
+:root[data-theme="light"] .footer-action,
+:root[data-theme="light"] .footer-muted,
+:root[data-theme="light"] .clipboard-section-title,
+:root[data-theme="light"] .clipboard-info h2,
+:root[data-theme="light"] .clipboard-info-row,
+:root[data-theme="light"] .empty-state,
+:root[data-theme="light"] .pi-empty {
+  color: var(--app-muted);
+}
+
+:root[data-theme="light"] .launcher-brand,
+:root[data-theme="light"] .result-icon,
+:root[data-theme="light"] .clipboard-back,
+:root[data-theme="light"] .clipboard-thumb,
+:root[data-theme="light"] kbd,
+:root[data-theme="light"] .prompt-badge,
+:root[data-theme="light"] .settings-input,
+:root[data-theme="light"] .small-input,
+:root[data-theme="light"] .clipboard-type {
+  border-color: var(--app-border);
+  background: var(--app-control);
+}
+
+:root[data-theme="light"] .result-row.active,
+:root[data-theme="light"] .result-row:hover,
+:root[data-theme="light"] .clipboard-entry.active,
+:root[data-theme="light"] .clipboard-entry:hover,
+:root[data-theme="light"] .clip-card:hover {
+  background: var(--app-hover);
 }
 
 .launcher-panel {
@@ -556,17 +658,6 @@ kbd {
   background: rgba(255, 255, 255, 0.08);
 }
 
-.ai-frame {
-  width: 100%;
-  min-height: 0;
-  border: 0;
-  background: rgba(255, 255, 255, 0.035);
-}
-
-.ai-frame.hidden {
-  display: none;
-}
-
 .ai-main {
   display: grid;
   grid-template-rows: minmax(220px, 42%) minmax(0, 1fr);
@@ -718,5 +809,167 @@ kbd {
     max-height: 230px;
     border-right: 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}
+
+.ai-react-app,
+.ai-react-app .ant-app {
+  width: 100%;
+  height: 100%;
+}
+
+.ai-flow-window {
+  color: var(--app-text);
+  background:
+    linear-gradient(135deg, rgba(37, 39, 45, 0.58), rgba(16, 17, 21, 0.48)),
+    var(--app-panel);
+}
+
+.ai-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 58px;
+  padding: 0 8px 0 18px;
+  border-bottom: 1px solid var(--app-subtle);
+  -webkit-app-region: drag;
+}
+
+.ai-title-main {
+  min-width: 0;
+}
+
+.ai-title-main h1 {
+  margin: 0;
+  color: var(--app-text);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.ai-title-main p {
+  margin: 3px 0 0;
+  color: var(--app-muted);
+  font-size: 12px;
+}
+
+.ai-window-actions {
+  display: flex;
+  gap: 2px;
+  -webkit-app-region: no-drag;
+}
+
+.ai-window-actions .ant-btn {
+  color: var(--app-text);
+}
+
+.ai-flow-body {
+  display: grid;
+  grid-template-columns: 276px minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+}
+
+.ai-conversation-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+  padding: 14px;
+  border-right: 1px solid var(--app-subtle);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+:root[data-theme="light"] .ai-conversation-rail {
+  background: rgba(15, 23, 42, 0.035);
+}
+
+.ai-conversations {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.ai-settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding-top: 12px;
+  border-top: 1px solid var(--app-subtle);
+}
+
+.ai-setting-label {
+  color: var(--app-muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.ai-skill-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ai-skill-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 28px;
+  color: var(--app-text);
+  font-size: 12px;
+}
+
+.ai-chat-flow {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.ai-chat-scroll {
+  min-height: 0;
+  padding: 18px 20px;
+  overflow: auto;
+}
+
+.ai-bubble-list {
+  min-height: 100%;
+}
+
+.ai-avatar {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  color: #fff;
+  background: var(--app-accent);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.ai-empty-flow {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--app-muted);
+  font-size: 14px;
+}
+
+.ai-sender {
+  margin: 0 20px 18px;
+}
+
+@media (max-width: 760px) {
+  .ai-flow-body {
+    grid-template-columns: 1fr;
+  }
+
+  .ai-conversation-rail {
+    max-height: 260px;
+    border-right: 0;
+    border-bottom: 1px solid var(--app-subtle);
   }
 }

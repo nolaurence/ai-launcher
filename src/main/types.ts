@@ -1,4 +1,5 @@
 export type WindowName = "launcher" | "clipboard" | "ai";
+export type ThemeMode = "dark" | "light";
 
 export interface LauncherApp {
   id: string;
@@ -24,8 +25,6 @@ export interface LauncherSettings {
     clipboard: string;
   };
   piCoding: {
-    webUrl: string;
-    apiBaseUrl: string;
     command: string;
   };
   skills: Array<{

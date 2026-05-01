@@ -1,5 +1,5 @@
 import type { IpcRendererEvent } from "electron";
-import type { ClipboardEntry, LauncherApp, LauncherSettings, WindowName } from "../main/types.js";
+import type { ClipboardEntry, LauncherApp, LauncherSettings, ThemeMode, WindowName } from "../main/types.js";
 
 const { contextBridge, ipcRenderer } = require("electron") as typeof import("electron");
 
@@ -15,7 +15,10 @@ const api = {
   writeClipboardText: (text: string): Promise<boolean> => ipcRenderer.invoke("clipboard:writeText", text),
   showWindow: (name: WindowName, payload?: unknown): Promise<boolean> => ipcRenderer.invoke("window:show", name, payload),
   hideWindow: (): Promise<boolean> => ipcRenderer.invoke("window:hide"),
-  askAi: (prompt: string): Promise<{ url: string; prompt: string }> => ipcRenderer.invoke("ai:ask", prompt),
+  controlWindow: (action: "minimize" | "maximize" | "close"): Promise<boolean> => ipcRenderer.invoke("window:control", action),
+  getTheme: (): Promise<ThemeMode> => ipcRenderer.invoke("theme:get"),
+  askAi: (prompt: string): Promise<{ prompt: string }> => ipcRenderer.invoke("ai:ask", prompt),
+  sendAiPrompt: (prompt: string): Promise<{ prompt: string }> => ipcRenderer.invoke("ai:send", prompt),
   startAi: (): Promise<{ output: { type: string; text: string; createdAt: number }; logs: Array<{ type: string; text: string; createdAt: number }> }> =>
     ipcRenderer.invoke("ai:start"),
   getAiLogs: (): Promise<Array<{ type: string; text: string; createdAt: number }>> => ipcRenderer.invoke("ai:logs"),
@@ -28,6 +31,11 @@ const api = {
     const listener = (_event: IpcRendererEvent, payload: unknown): void => handler(payload);
     ipcRenderer.on("window:shown", listener);
     return () => ipcRenderer.off("window:shown", listener);
+  },
+  onThemeChanged: (handler: (theme: ThemeMode) => void): (() => void) => {
+    const listener = (_event: IpcRendererEvent, theme: ThemeMode): void => handler(theme);
+    ipcRenderer.on("theme:changed", listener);
+    return () => ipcRenderer.off("theme:changed", listener);
   }
 };
 

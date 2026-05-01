@@ -12,7 +12,8 @@ Win11 Mica 风格的 Electron + TypeScript 启动器原型。
 - `Ctrl+Shift+V` 呼出剪贴板历史。
 - 剪贴板历史最多 1000 条，支持文本、图片、文件路径和视频路径预览。
 - Launcher 输入文本后按 `Tab` 进入快速 AI 窗口。
-- AI 窗口可配置 pi-coding web-ui、API 地址、启动命令，并带技能开关管理区域。
+- AI 窗口使用 React + Ant Design X 对话流，可配置 pi-coding 启动命令，并带技能开关管理区域。
+- Launcher、剪贴板和 AI 窗口会同步系统暗色 / 浅色模式。
 
 ## 开发
 
@@ -30,8 +31,6 @@ npm.cmd run dev
 - `clipboardMaxItems`
 - `shortcuts.launcher`
 - `shortcuts.clipboard`
-- `piCoding.webUrl`
-- `piCoding.apiBaseUrl`
 - `piCoding.command`
 - `skills`
 

@@ -10,8 +10,6 @@ const defaultSettings: LauncherSettings = {
     clipboard: "CommandOrControl+Shift+V"
   },
   piCoding: {
-    webUrl: "http://127.0.0.1:31415",
-    apiBaseUrl: "http://127.0.0.1:31415/api",
     command: "pi"
   },
   skills: [

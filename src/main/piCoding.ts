@@ -60,18 +60,14 @@ export class PiCodingAdapter {
     return this.logs;
   }
 
-  async ask(request: AiSessionRequest): Promise<{ url: string; prompt: string }> {
-    const settings = this.getSettings().piCoding;
+  async ask(request: AiSessionRequest): Promise<{ prompt: string }> {
     this.start();
     if (this.child?.stdin.writable && request.prompt.trim()) {
       this.push({ type: "stdout", text: request.prompt, eventType: "user_prompt", role: "user", createdAt: Date.now() });
       this.sendRpc({ type: "prompt", message: request.prompt, streamingBehavior: "followUp" });
     }
 
-    const encoded = encodeURIComponent(request.prompt);
-    const separator = settings.webUrl.includes("?") ? "&" : "?";
     return {
-      url: `${settings.webUrl}${separator}prompt=${encoded}`,
       prompt: request.prompt
     };
   }
