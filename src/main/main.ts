@@ -23,6 +23,21 @@ function currentTheme(): ThemeMode {
   return nativeTheme.shouldUseDarkColors ? "dark" : "light";
 }
 
+function titleBarOverlayOptions(): Electron.TitleBarOverlay {
+  const isDark = currentTheme() === "dark";
+  return {
+    color: "#00000000",
+    symbolColor: isDark ? "#f5f7fb" : "#111827",
+    height: 46
+  };
+}
+
+function syncTitleBarOverlay(window: BrowserWindow): void {
+  if (process.platform === "win32" || process.platform === "linux") {
+    window.setTitleBarOverlay(titleBarOverlayOptions());
+  }
+}
+
 function toDipSize(width: number, height: number, scaleFactor: number): { width: number; height: number } {
   const scale = scaleFactor > 0 ? scaleFactor : 1;
   return {
@@ -45,8 +60,10 @@ function createWindow(name: WindowName): BrowserWindow {
   const fixedToolSize = toDipSize(fixedToolPhysicalSize.width, fixedToolPhysicalSize.height, display.scaleFactor);
   const fixedSizeWindow = name === "launcher" || name === "clipboard";
   const size = name === "launcher" ? launcherSize : name === "clipboard" ? fixedToolSize : { width: 1100, height: 760 };
+  const useNativeOverlayControls = name === "ai";
   const window = new BrowserWindow({
     ...size,
+    title: useNativeOverlayControls ? "" : "Mica Launcher",
     show: false,
     frame: false,
     resizable: !fixedSizeWindow,
@@ -56,12 +73,13 @@ function createWindow(name: WindowName): BrowserWindow {
     maxWidth: fixedSizeWindow ? size.width : undefined,
     minHeight: fixedSizeWindow ? size.height : undefined,
     maxHeight: fixedSizeWindow ? size.height : undefined,
-    transparent: true,
+    transparent: false,
     vibrancy: "under-window",
     visualEffectState: "active",
     backgroundMaterial: "mica",
     backgroundColor: "#00000000",
     titleBarStyle: "hidden",
+    titleBarOverlay: useNativeOverlayControls ? titleBarOverlayOptions() : false,
     webPreferences: {
       preload: join(__dirname, "../preload/preload.cjs"),
       contextIsolation: true,
@@ -69,6 +87,9 @@ function createWindow(name: WindowName): BrowserWindow {
       webviewTag: false
     }
   });
+  if (useNativeOverlayControls) {
+    syncTitleBarOverlay(window);
+  }
 
   window.loadURL(rendererUrl(name));
   window.on("blur", () => {
@@ -208,6 +229,7 @@ app.whenReady().then(() => {
   nativeTheme.on("updated", () => {
     const theme = currentTheme();
     for (const window of windows.values()) {
+      syncTitleBarOverlay(window);
       window.webContents.send("theme:changed", theme);
     }
   });

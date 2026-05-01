@@ -28,7 +28,13 @@ interface AiOutput {
   text: string;
   createdAt: number;
   eventType?: string;
+  messageEventType?: string;
   role?: string;
+  toolName?: string;
+  toolCallId?: string;
+  toolArguments?: unknown;
+  status?: "started" | "delta" | "ended" | "error";
+  raw?: unknown;
 }
 
 declare global {

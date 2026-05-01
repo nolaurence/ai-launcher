@@ -34,6 +34,17 @@ export interface LauncherSettings {
   }>;
 }
 
+export interface SkillRecord {
+  id: string;
+  name: string;
+  description: string;
+  directory: string;
+  source: "user" | "global" | "project";
+  enabled: boolean;
+  slashCommand: string;
+  disableModelInvocation: boolean;
+}
+
 export interface AiSessionRequest {
   prompt: string;
 }

@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { App, Button, ConfigProvider, Input, Switch, theme } from "antd";
-import { CloseOutlined, ExpandOutlined, MinusOutlined, PlusOutlined } from "@ant-design/icons";
-import { Bubble, Conversations, Sender, XProvider, type BubbleItemType, type ConversationItemType } from "@ant-design/x";
+import { CodeOutlined, LoadingOutlined, PlusOutlined, ToolOutlined } from "@ant-design/icons";
+import { Bubble, Conversations, Sender, Think, XProvider, type BubbleItemType, type ConversationItemType } from "@ant-design/x";
 import type { LauncherSettings, ThemeMode } from "../../main/types.js";
 
 interface AiOutput {
@@ -10,13 +10,32 @@ interface AiOutput {
   text: string;
   createdAt: number;
   eventType?: string;
+  messageEventType?: string;
   role?: string;
+  toolName?: string;
+  toolCallId?: string;
+  toolArguments?: unknown;
+  status?: "started" | "delta" | "ended" | "error";
+  raw?: unknown;
+}
+
+type ChatPartType = "text" | "thinking" | "tool-call" | "tool-result" | "error";
+
+interface ChatPart {
+  id: string;
+  type: ChatPartType;
+  content: string;
+  createdAt: number;
+  status?: "started" | "delta" | "ended" | "error";
+  toolName?: string;
+  toolArguments?: unknown;
 }
 
 interface ChatMessage {
   id: string;
   role: "user" | "assistant" | "system" | "error";
-  content: string;
+  content?: string;
+  parts?: ChatPart[];
   createdAt: number;
   streaming?: boolean;
 }
@@ -37,58 +56,281 @@ const initialSession = (): ChatSession => ({
   createdAt: Date.now()
 });
 
-function shouldShowInChat(output: AiOutput): boolean {
-  const text = output.text.trim();
-  if (!text || output.type === "status") {
-    return false;
-  }
-  if (["turn_start", "turn_end", "agent_start", "agent_end", "message_end", "response"].includes(output.eventType ?? "")) {
-    return false;
-  }
-  return text !== "assistant" && text !== "user" && text !== "system";
-}
-
 function titleFromPrompt(prompt: string): string {
   const compact = prompt.replace(/\s+/g, " ").trim();
   return compact ? compact.slice(0, 28) : "新对话";
 }
 
-function messageFromOutput(output: AiOutput): ChatMessage | null {
-  if (!shouldShowInChat(output)) {
-    return null;
+function makeId(prefix: string): string {
+  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function isLifecycleEvent(output: AiOutput): boolean {
+  return ["turn_start", "agent_start", "agent_end", "response"].includes(output.eventType ?? "");
+}
+
+function stringifyValue(value: unknown): string {
+  if (value === undefined || value === null || value === "") {
+    return "";
   }
-  const role = output.role === "user" ? "user" : output.type === "stderr" || output.type === "exit" ? "error" : "assistant";
-  return {
-    id: `${output.createdAt}-${output.eventType ?? output.type}-${Math.random().toString(16).slice(2)}`,
-    role,
-    content: output.text,
-    createdAt: output.createdAt,
-    streaming: output.eventType === "message_update" && role === "assistant"
-  };
+  if (typeof value === "string") {
+    return value;
+  }
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
+
+function endStreaming(messages: ChatMessage[]): ChatMessage[] {
+  return messages.map((message) => ({
+    ...message,
+    streaming: false,
+    parts: message.parts?.map((part) => (part.status === "started" || part.status === "delta" ? { ...part, status: "ended" as const } : part))
+  }));
+}
+
+function appendAssistantPart(messages: ChatMessage[], part: ChatPart, mergeWithLast = true): ChatMessage[] {
+  const last = messages[messages.length - 1];
+  const shouldReuse = last?.role === "assistant";
+  const assistant: ChatMessage = shouldReuse
+    ? last
+    : {
+        id: makeId("assistant"),
+        role: "assistant",
+        createdAt: part.createdAt,
+        streaming: true,
+        parts: []
+      };
+  const parts = assistant.parts ?? [];
+  const previous = parts[parts.length - 1];
+  const canMerge =
+    mergeWithLast &&
+    previous &&
+    previous.type === part.type &&
+    previous.toolName === part.toolName &&
+    (part.type === "text" || part.type === "thinking" || part.type === "tool-result");
+  const nextParts = canMerge
+    ? [...parts.slice(0, -1), { ...previous, content: `${previous.content}${part.content}`, status: part.status ?? previous.status }]
+    : [...parts, part];
+  const nextAssistant = { ...assistant, streaming: part.status !== "ended", parts: nextParts };
+  return shouldReuse ? [...messages.slice(0, -1), nextAssistant] : [...messages, nextAssistant];
+}
+
+function updateLastPart(messages: ChatMessage[], type: ChatPartType, updater: (part: ChatPart) => ChatPart): ChatMessage[] {
+  let messageIndex = -1;
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    if (messages[index].role === "assistant" && messages[index].parts?.some((part) => part.type === type)) {
+      messageIndex = index;
+      break;
+    }
+  }
+  if (messageIndex < 0) {
+    return messages;
+  }
+  const message = messages[messageIndex];
+  const parts = message.parts ?? [];
+  let partIndex = -1;
+  for (let index = parts.length - 1; index >= 0; index -= 1) {
+    if (parts[index].type === type) {
+      partIndex = index;
+      break;
+    }
+  }
+  if (partIndex < 0) {
+    return messages;
+  }
+  const nextParts = parts.map((part, currentIndex) => (currentIndex === partIndex ? updater(part) : part));
+  return messages.map((item, currentIndex) => (currentIndex === messageIndex ? { ...message, parts: nextParts } : item));
 }
 
 function addOutputToMessages(messages: ChatMessage[], output: AiOutput): ChatMessage[] {
-  if (output.eventType === "message_end" || output.eventType === "agent_end" || output.eventType === "turn_end") {
-    return messages.map((item) => (item.streaming ? { ...item, streaming: false } : item));
-  }
-
-  const next = messageFromOutput(output);
-  if (!next) {
+  if (output.type === "status" || isLifecycleEvent(output)) {
     return messages;
   }
-
-  if (next.role === "assistant" && output.eventType === "message_update") {
-    const last = messages[messages.length - 1];
-    if (last?.role === "assistant" && last.streaming) {
-      return [...messages.slice(0, -1), { ...last, content: `${last.content}${next.content}`, createdAt: next.createdAt }];
-    }
+  if (output.eventType === "message_end" || output.eventType === "agent_end" || output.eventType === "turn_end") {
+    return endStreaming(messages);
   }
 
-  return [...messages, next];
+  if (output.eventType === "user_prompt") {
+    return [...messages, { id: makeId("user"), role: "user", content: output.text, createdAt: output.createdAt }];
+  }
+
+  if (output.type === "stderr" || output.type === "exit") {
+    return appendAssistantPart(messages, {
+      id: makeId("error"),
+      type: "error",
+      content: output.text,
+      createdAt: output.createdAt,
+      status: "error"
+    });
+  }
+
+  if (output.messageEventType === "text_delta") {
+    return appendAssistantPart(messages, { id: makeId("text"), type: "text", content: output.text, createdAt: output.createdAt, status: output.status });
+  }
+
+  if (output.messageEventType === "thinking_delta") {
+    return appendAssistantPart(messages, {
+      id: makeId("thinking"),
+      type: "thinking",
+      content: output.text,
+      createdAt: output.createdAt,
+      status: output.status
+    });
+  }
+
+  if (output.messageEventType === "thinking_end") {
+    return updateLastPart(messages, "thinking", (part) => ({ ...part, status: "ended" }));
+  }
+
+  if (output.messageEventType === "toolcall_start") {
+    return appendAssistantPart(
+      messages,
+      {
+        id: output.toolCallId ?? makeId("tool-call"),
+        type: "tool-call",
+        content: output.text,
+        createdAt: output.createdAt,
+        status: "started",
+        toolName: output.toolName ?? "tool",
+        toolArguments: output.toolArguments
+      },
+      false
+    );
+  }
+
+  if (output.messageEventType === "toolcall_delta") {
+    return updateLastPart(messages, "tool-call", (part) => ({
+      ...part,
+      content: `${part.content}${output.text}`,
+      status: "delta",
+      toolArguments: output.toolArguments ?? part.toolArguments
+    }));
+  }
+
+  if (output.messageEventType === "toolcall_end") {
+    return updateLastPart(messages, "tool-call", (part) => ({
+      ...part,
+      content: part.content || output.text,
+      status: "ended",
+      toolName: output.toolName ?? part.toolName,
+      toolArguments: output.toolArguments ?? part.toolArguments
+    }));
+  }
+
+  if (output.messageEventType?.startsWith("tool_execution_")) {
+    const part: ChatPart = {
+      id: makeId("tool-result"),
+      type: "tool-result",
+      content: output.messageEventType === "tool_execution_start" ? "" : output.text,
+      createdAt: output.createdAt,
+      status: output.status,
+      toolName: output.toolName ?? "tool"
+    };
+    if (output.messageEventType === "tool_execution_start") {
+      return appendAssistantPart(messages, part, false);
+    }
+    return appendAssistantPart(messages, part);
+  }
+
+  if (output.text.trim() && !output.messageEventType) {
+    const trimmed = output.text.trim().toLowerCase();
+    if (trimmed === "user" || trimmed === "assistant" || trimmed === "system" || trimmed === "tool") {
+      return messages;
+    }
+    return appendAssistantPart(messages, { id: makeId("text"), type: "text", content: output.text, createdAt: output.createdAt, status: output.status });
+  }
+
+  return messages;
 }
 
 function buildMessages(logs: AiOutput[]): ChatMessage[] {
   return logs.reduce<ChatMessage[]>((items, output) => addOutputToMessages(items, output), []);
+}
+
+function renderCodeBlock(content: string, lang = "text"): React.ReactElement {
+  return content.trim() ? (
+    <pre className="ai-code-block" data-lang={lang}>
+      {content}
+    </pre>
+  ) : (
+    <span className="ai-muted">等待输出...</span>
+  );
+}
+
+function renderToolArguments(part: ChatPart): React.ReactNode {
+  const toolArgs = part.toolArguments;
+  if (toolArgs && typeof toolArgs === "object" && !Array.isArray(toolArgs)) {
+    const record = toolArgs as Record<string, unknown>;
+    if (typeof record.command === "string") {
+      return <div className="ai-tool-args">{renderCodeBlock(record.command, "bash")}</div>;
+    }
+  }
+  const args = stringifyValue(toolArgs) || part.content;
+  if (!args.trim()) {
+    return null;
+  }
+  return <div className="ai-tool-args">{renderCodeBlock(args, "json")}</div>;
+}
+
+function renderAssistantPart(part: ChatPart): React.ReactElement {
+  if (part.type === "text") {
+    return (
+      <div className="ai-agent-text" key={part.id}>
+        {part.content}
+      </div>
+    );
+  }
+
+  if (part.type === "thinking") {
+    const loading = part.status !== "ended";
+    return (
+      <Think className="ai-thinking" defaultExpanded={false} key={part.id} loading={loading} title={loading ? "正在思考" : "思考过程"}>
+        <pre>{part.content}</pre>
+      </Think>
+    );
+  }
+
+  if (part.type === "tool-call") {
+    const running = part.status !== "ended";
+    return (
+      <div className="ai-tool-card" key={part.id}>
+        <div className="ai-tool-header">
+          {running ? <LoadingOutlined spin /> : <ToolOutlined />}
+          <span>调用工具</span>
+          <strong>{part.toolName ?? "tool"}</strong>
+          <em>{running ? "运行中" : "已完成"}</em>
+        </div>
+        {renderToolArguments(part)}
+      </div>
+    );
+  }
+
+  if (part.type === "tool-result") {
+    const lang = part.toolName === "bash" || part.toolName === "shell" ? "bash" : "text";
+    return (
+      <div className="ai-tool-card ai-tool-result" key={part.id}>
+        <div className="ai-tool-header">
+          {part.status === "ended" ? <CodeOutlined /> : <LoadingOutlined spin />}
+          <span>工具结果</span>
+          <strong>{part.toolName ?? "tool"}</strong>
+        </div>
+        {renderCodeBlock(part.content, lang)}
+      </div>
+    );
+  }
+
+  return (
+    <div className="ai-error-block" key={part.id}>
+      {part.content}
+    </div>
+  );
+}
+
+function renderAssistantMessage(message: ChatMessage): React.ReactElement {
+  return <div className="ai-agent-content">{(message.parts ?? []).map(renderAssistantPart)}</div>;
 }
 
 function AiWindow({ initialTheme }: { initialTheme: ThemeMode }): React.ReactElement {
@@ -176,9 +418,13 @@ function AiWindow({ initialTheme }: { initialTheme: ThemeMode }): React.ReactEle
       activeSession.messages.map((message) => ({
         key: message.id,
         role: message.role === "user" ? "user" : message.role === "error" ? "system" : "ai",
-        content: message.content,
+        content: message,
+        header: null,
+        avatar: null,
+        extra: null,
+        className: `ai-message ai-message-${message.role}`,
         streaming: message.streaming,
-        variant: message.role === "error" ? "outlined" : "filled"
+        variant: message.role === "user" ? "filled" : "borderless"
       })),
     [activeSession.messages]
   );
@@ -194,11 +440,6 @@ function AiWindow({ initialTheme }: { initialTheme: ThemeMode }): React.ReactEle
               <div className="ai-title-main">
                 <h1>快速 AI</h1>
                 <p>对话流、会话列表和 pi-coding RPC 输出</p>
-              </div>
-              <div className="ai-window-actions">
-                <Button aria-label="最小化" icon={<MinusOutlined />} type="text" onClick={() => void window.launcherApi.controlWindow("minimize")} />
-                <Button aria-label="最大化" icon={<ExpandOutlined />} type="text" onClick={() => void window.launcherApi.controlWindow("maximize")} />
-                <Button aria-label="关闭" danger icon={<CloseOutlined />} type="text" onClick={() => void window.launcherApi.controlWindow("close")} />
               </div>
             </header>
 
@@ -273,9 +514,22 @@ function AiWindow({ initialTheme }: { initialTheme: ThemeMode }): React.ReactEle
                       className="ai-bubble-list"
                       items={bubbleItems}
                       role={{
-                        ai: { placement: "start", avatar: <span className="ai-avatar">AI</span>, typing: { effect: "fade-in" } },
-                        user: { placement: "end", avatar: <span className="ai-avatar">你</span> },
-                        system: { placement: "start", avatar: <span className="ai-avatar">!</span>, variant: "outlined" }
+                        ai: {
+                          placement: "start",
+                          typing: { effect: "fade-in" },
+                          variant: "borderless",
+                          contentRender: (content: ChatMessage) => renderAssistantMessage(content)
+                        },
+                        user: {
+                          placement: "end",
+                          variant: "filled",
+                          contentRender: (content: ChatMessage) => <div className="ai-user-content">{content.content}</div>
+                        },
+                        system: {
+                          placement: "start",
+                          variant: "borderless",
+                          contentRender: (content: ChatMessage) => renderAssistantMessage(content)
+                        }
                       }}
                     />
                   ) : (
@@ -288,6 +542,7 @@ function AiWindow({ initialTheme }: { initialTheme: ThemeMode }): React.ReactEle
                   loading={sending}
                   placeholder="输入消息，Enter 发送，Shift+Enter 换行"
                   submitType="enter"
+                  styles={{ suffix: { flexShrink: 0 }, input: { minWidth: 0 } }}
                   value={input}
                   onCancel={() => setSending(false)}
                   onChange={setInput}

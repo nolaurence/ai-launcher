@@ -19,11 +19,11 @@ const api = {
   getTheme: (): Promise<ThemeMode> => ipcRenderer.invoke("theme:get"),
   askAi: (prompt: string): Promise<{ prompt: string }> => ipcRenderer.invoke("ai:ask", prompt),
   sendAiPrompt: (prompt: string): Promise<{ prompt: string }> => ipcRenderer.invoke("ai:send", prompt),
-  startAi: (): Promise<{ output: { type: string; text: string; createdAt: number }; logs: Array<{ type: string; text: string; createdAt: number }> }> =>
+  startAi: (): Promise<{ output: AiOutput; logs: AiOutput[] }> =>
     ipcRenderer.invoke("ai:start"),
-  getAiLogs: (): Promise<Array<{ type: string; text: string; createdAt: number }>> => ipcRenderer.invoke("ai:logs"),
-  onAiOutput: (handler: (output: { type: string; text: string; createdAt: number }) => void): (() => void) => {
-    const listener = (_event: IpcRendererEvent, output: { type: string; text: string; createdAt: number }): void => handler(output);
+  getAiLogs: (): Promise<AiOutput[]> => ipcRenderer.invoke("ai:logs"),
+  onAiOutput: (handler: (output: AiOutput) => void): (() => void) => {
+    const listener = (_event: IpcRendererEvent, output: AiOutput): void => handler(output);
     ipcRenderer.on("ai:output", listener);
     return () => ipcRenderer.off("ai:output", listener);
   },
@@ -42,3 +42,17 @@ const api = {
 contextBridge.exposeInMainWorld("launcherApi", api);
 
 export type LauncherApi = typeof api;
+
+interface AiOutput {
+  type: string;
+  text: string;
+  createdAt: number;
+  eventType?: string;
+  messageEventType?: string;
+  role?: string;
+  toolName?: string;
+  toolCallId?: string;
+  toolArguments?: unknown;
+  status?: "started" | "delta" | "ended" | "error";
+  raw?: unknown;
+}
